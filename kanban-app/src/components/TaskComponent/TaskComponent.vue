@@ -16,8 +16,8 @@ defineProps<Props>()
 
 const { handleDeleteTask } = useBoardsStore()
 const ctxMenuRef = ref(null)
-const showCtxMenu = (event) => {
-  ctxMenuRef.value.show(event)
+const showCtxMenu = (event: MouseEvent) => {
+  if (ctxMenuRef.value) ctxMenuRef.value.show(event)
 }
 
 const ctxMenuList = ref([

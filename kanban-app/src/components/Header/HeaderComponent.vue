@@ -42,7 +42,7 @@ const taskEditSubmit = () => {
     return
   }
 
-  if (newTaskData.value.subtasks.some((subtask) => !subtask.title)) {
+  if (newTaskData.value.subtasks && newTaskData.value.subtasks.some((subtask) => !subtask.title)) {
     toast.add({
       detail: 'Subtask title cannot be empty',
       severity: 'warn',
@@ -55,21 +55,23 @@ const taskEditSubmit = () => {
   const targetColData = currentBoard.value.data.find(
     (col) => col.col_name === newTaskData.value.col_name
   )
-  targetColData.tasks.push({
-    id: targetColData.tasks.length + 1,
-    title: newTaskData.value.title,
-    description: newTaskData.value.description,
-    subtasks: [..._.cloneDeep(newTaskData.value.subtasks)]
-  })
-  toast.add({
-    detail: 'Add task succesfully',
-    severity: 'success',
-    life: 3000,
-    closable: true
-  })
+  if (targetColData) {
+    targetColData.tasks.push({
+      id: targetColData.tasks.length + 1,
+      title: newTaskData.value.title,
+      description: newTaskData.value.description,
+      subtasks: [..._.cloneDeep(newTaskData.value.subtasks)]
+    })
+    toast.add({
+      detail: 'Add task succesfully',
+      severity: 'success',
+      life: 3000,
+      closable: true
+    })
 
-  modalVisible.value = false
-  newTaskData.value.subtasks = [{ done: false, id: 1, title: '' }]
+    modalVisible.value = false
+    newTaskData.value.subtasks = [{ done: false, id: 1, title: '' }]
+  }
 }
 
 //
