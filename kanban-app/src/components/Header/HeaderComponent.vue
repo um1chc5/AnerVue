@@ -57,11 +57,14 @@ const taskEditSubmit = () => {
     const targetColData = currentBoard.value.data.find(
       (col) => col.col_name === newTaskData.value.col_name
     )
+    if (!targetColData) return
     targetColData.tasks.push({
       id: targetColData.tasks.length + 1,
       title: newTaskData.value.title,
       description: newTaskData.value.description,
-      subtasks: newTaskData.value.subtasks.map((subtask) => ({ ...subtask }))
+      subtasks: (newTaskData.value.subtasks as { id: number; title: string; done: boolean }[]).map(
+        (subtask: { id: number; title: string; done: boolean }) => ({ ...subtask })
+      )
     })
     toast.add({
       detail: 'Add task succesfully',

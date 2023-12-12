@@ -16,6 +16,7 @@
     /* Linting */
     //Sửa bug env trong index.ts
     "types": ["unplugin-icons/types/vue", "node", "vite/client"],
+    "strictNullChecks": false,
     "importHelpers": true,
     "baseUrl": ".",
   },
