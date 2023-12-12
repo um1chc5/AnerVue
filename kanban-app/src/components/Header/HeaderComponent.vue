@@ -62,9 +62,9 @@ const taskEditSubmit = () => {
       id: targetColData.tasks.length + 1,
       title: newTaskData.value.title,
       description: newTaskData.value.description,
-      subtasks: (newTaskData.value.subtasks as { id: number; title: string; done: boolean }[]).map(
-        (subtask: { id: number; title: string; done: boolean }) => ({ ...subtask })
-      )
+      subtasks: (
+        newTaskData.value.subtasks as unknown as { id: number; title: string; done: boolean }[]
+      ).map((subtask: { id: number; title: string; done: boolean }) => ({ ...subtask }))
     })
     toast.add({
       detail: 'Add task succesfully',

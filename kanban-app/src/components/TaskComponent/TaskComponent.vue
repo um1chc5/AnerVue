@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import type ContextMenu from 'primevue/contextmenu'
 import useBoardsStore from 'src/stores/boards'
 import type { BoardType, TaskType } from 'src/types'
-import { ref } from 'vue'
+import { ref, type VNodeRef } from 'vue'
 
 interface Props {
   handleOpenModal: (board_name: string, col_name: string, title: string, id: number) => void
@@ -15,9 +16,9 @@ interface Props {
 defineProps<Props>()
 
 const { handleDeleteTask } = useBoardsStore()
-const ctxMenuRef = ref(null)
+const ctxMenuRef = ref<InstanceType<typeof ContextMenu>>()
 const showCtxMenu = (event: MouseEvent) => {
-  if (ctxMenuRef.value) ctxMenuRef.value.show(event)
+  ctxMenuRef.value?.show(event)
 }
 
 const ctxMenuList = ref([
