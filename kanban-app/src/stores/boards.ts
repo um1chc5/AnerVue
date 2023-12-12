@@ -99,8 +99,10 @@ const useBoardsStore = defineStore('counter', () => {
   const handleDeleteTask = (board_name: string, col_name: string, index: number) => {
     if (boards) {
       const currBoard = boards?.find((board) => board.board_name === board_name)
-      const colData = currBoard.data.find((colData) => colData.col_name === col_name)
-      if (colData) colData.tasks.splice(index, 1)
+      if (currBoard) {
+        const colData = currBoard.data.find((colData) => colData.col_name === col_name)
+        if (colData) colData.tasks.splice(index, 1)
+      }
     }
   }
 

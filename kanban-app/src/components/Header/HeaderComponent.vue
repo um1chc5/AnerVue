@@ -42,7 +42,8 @@ const taskEditSubmit = () => {
     return
   }
 
-  if (newTaskData.value.subtasks && newTaskData.value.subtasks.some((subtask) => !subtask.title)) {
+  if (newTaskData.value.subtasks) {
+    newTaskData.value.subtasks.some((subtask) => !subtask.title)
     toast.add({
       detail: 'Subtask title cannot be empty',
       severity: 'warn',
