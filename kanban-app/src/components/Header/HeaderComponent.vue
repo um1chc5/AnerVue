@@ -17,7 +17,7 @@ const modalVisible = ref(false)
 
 const currentBoard = computed(() => boardFiltering(boards, route))
 const initialColName = computed(() => getColNames(currentBoard.value)[0])
-const subtaskLength = computed(() => newTaskData.value.subtasks?.length)
+// const subtaskLength = computed(() => newTaskData.value.subtasks?.length)
 const newTaskData = ref({
   title: '',
   description: '',
@@ -52,15 +52,15 @@ const taskEditSubmit = () => {
     return
   }
 
-  const targetColData = currentBoard.value.data.find(
-    (col) => col.col_name === newTaskData.value.col_name
-  )
-  if (targetColData) {
+  if (currentBoard.value) {
+    const targetColData = currentBoard.value.data.find(
+      (col) => col.col_name === newTaskData.value.col_name
+    )
     targetColData.tasks.push({
       id: targetColData.tasks.length + 1,
       title: newTaskData.value.title,
       description: newTaskData.value.description,
-      subtasks: [..._.cloneDeep(newTaskData.value.subtasks)]
+      subtasks: newTaskData.value.subtasks.map((subtask) => ({ ...subtask }))
     })
     toast.add({
       detail: 'Add task succesfully',
@@ -145,7 +145,7 @@ const taskEditSubmit = () => {
           size="small"
           @click.prevent="
             newTaskData.subtasks?.push({
-              id: subtaskLength || 0 + 1,
+              id: newTaskData.subtasks?.length || 0 + 1,
               done: false,
               title: ''
             })
