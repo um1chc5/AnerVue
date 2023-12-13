@@ -2,7 +2,7 @@
 import type ContextMenu from 'primevue/contextmenu'
 import useBoardsStore from 'src/stores/boards'
 import type { BoardType, TaskType } from 'src/types'
-import { ref, type VNodeRef } from 'vue'
+import { ref } from 'vue'
 
 interface Props {
   handleOpenModal: (board_name: string, col_name: string, title: string, id: number) => void

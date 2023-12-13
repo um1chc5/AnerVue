@@ -5,7 +5,6 @@ import type { TaskType } from 'src/types'
 import { boardFiltering, getColNames } from 'src/utils/utils'
 import { computed, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
-import _ from 'lodash'
 
 type CustomTaskType = TaskType & {
   col_name: string
@@ -43,14 +42,18 @@ const taskEditSubmit = () => {
   }
 
   if (newTaskData.value.subtasks) {
-    newTaskData.value.subtasks.some((subtask) => !subtask.title)
-    toast.add({
-      detail: 'Subtask title cannot be empty',
-      severity: 'warn',
-      life: 3000,
-      closable: true
-    })
-    return
+    const isSubtaskEmpty =
+      newTaskData.value.subtasks.some((subtask) => !subtask.title) &&
+      newTaskData.value.subtasks.length !== 0
+    if (isSubtaskEmpty) {
+      toast.add({
+        detail: 'Subtask title cannot be empty',
+        severity: 'warn',
+        life: 3000,
+        closable: true
+      })
+      return
+    }
   }
 
   if (currentBoard.value) {
