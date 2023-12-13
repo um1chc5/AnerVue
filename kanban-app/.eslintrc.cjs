@@ -12,5 +12,5 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest'
   },
-  ignorePatterns: ['package.json']
+  ignorePatterns: ['package.json', 'vercel.json']
 }
