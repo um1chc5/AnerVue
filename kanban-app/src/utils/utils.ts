@@ -21,6 +21,7 @@ const getDataFromLS = (key: string) => {
     // Get the JSON string from localStorage
     const jsonString = localStorage.getItem(key)
 
+    if (!jsonString) return
     // Parse the JSON string into an object
     const parsedObject = JSON.parse(jsonString)
 
