@@ -1,13 +1,11 @@
 <template>
   <div class="h-full">
     <HeaderComponent />
-    <div class="flex">
-      <div class="w-1/6">
-        <SideBar />
-      </div>
-      <div>
-        <BoardComponent />
-      </div>
+    <div class="fixed w-[260px]">
+      <SideBar />
+    </div>
+    <div>
+      <BoardComponent />
     </div>
   </div>
 </template>

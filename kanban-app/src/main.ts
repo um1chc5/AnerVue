@@ -20,3 +20,5 @@ app.use(router)
 app.component('Toast', Toast)
 
 app.mount('#app')
+
+export { app }

@@ -15,6 +15,7 @@
     "prettier:fix": "prettier --write \"src/**/(*.tsx|*.ts|*.css|*.scss)\""
   },
   "dependencies": {
+    "@vueuse/core": "^10.7.0",
     "lodash": "^4.17.21",
     "pinia": "^2.1.7",
     "primevue": "^3.42.0",

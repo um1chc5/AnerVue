@@ -1,93 +1,17 @@
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import type { BoardType, TaskModalMarkerType, TaskType } from '../types'
+import { getDataFromLS } from 'src/utils/utils'
+import { initalBoards } from './initalBoards'
 
 const useBoardsStore = defineStore('counter', () => {
-  const boards = reactive<BoardType[]>([
-    {
-      board_name: 'Vue learning plan',
-      path: 'vue-learning-plan',
-      data: [
-        {
-          col_name: 'Todo',
-          tasks: [
-            {
-              id: 1,
-              title: 'Build UI for onboarding flow',
-              description:
-                ' Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt utlabore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco',
-              subtasks: [
-                { id: 1, title: 'subtask 1', done: false },
-                { id: 2, title: 'subtask 2', done: true },
-                { id: 3, title: 'subtask 3', done: false }
-              ]
-            },
-            {
-              id: 2,
-              title: 'yeah',
-              subtasks: [
-                { id: 1, title: 'subtask 1', done: false },
-                { id: 2, title: 'subtask 2', done: true },
-                { id: 3, title: 'subtask 3', done: false }
-              ]
-            }
-          ]
-        },
-        {
-          col_name: 'Doing',
-          tasks: [
-            {
-              id: 1,
-              title: 'go',
-              subtasks: [
-                { id: 1, title: 'subtask 1', done: true },
-                { id: 2, title: 'subtask 2', done: false }
-              ]
-            },
-            {
-              id: 2,
-              title: 'go',
-              subtasks: [
-                { id: 1, title: 'subtask 1', done: false },
-                { id: 2, title: 'subtask 2', done: true },
-                { id: 3, title: 'subtask 3', done: false }
-              ]
-            }
-          ]
-        },
-        {
-          col_name: 'Done',
-          tasks: [
-            {
-              id: 1,
-              title: 'yeah',
-              subtasks: [
-                { id: 1, title: 'subtask 1', done: false },
-                { id: 2, title: 'subtask 2', done: true }
-              ]
-            },
-            {
-              id: 2,
-              title: 'yeah',
-              subtasks: [
-                { id: 1, title: 'subtask 1', done: false },
-                { id: 2, title: 'subtask 2', done: true }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      board_name: 'Fsoft intern plan',
-      path: 'fsoft-intern-plan',
-      data: [
-        { col_name: 'Todo', tasks: [] },
-        { col_name: 'Doing', tasks: [] },
-        { col_name: 'Done', tasks: [] }
-      ]
-    }
-  ])
+  const boardsData = getDataFromLS('kanban-boards') ? getDataFromLS('kanban-boards') : initalBoards
+
+  const boards = reactive<BoardType[]>(boardsData)
+
+  watch(boards, () => {
+    localStorage.setItem('kanban-boards', JSON.stringify(boards))
+  })
 
   const modalDataMarker = ref<TaskModalMarkerType>({
     board_name: '',

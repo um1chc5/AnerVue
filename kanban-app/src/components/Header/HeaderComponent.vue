@@ -84,7 +84,7 @@ const taskEditSubmit = () => {
 //
 </script>
 <template>
-  <header class="flex py-4 shadow relative z-10 bg-white">
+  <header class="flex py-4 shadow fixed w-full z-10 bg-white">
     <h1 class="w-1/6 items-center pl-6 text-4xl font-bold text-green-600">Kanban</h1>
     <div class="w-5/6 px-4 flex justify-between items-center">
       <h1 class="text-xl font-bold text-slate-800">Platform Launch</h1>

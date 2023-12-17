@@ -32,11 +32,11 @@ const ctxMenuList = ref([
 <template>
   <div>
     <li
-      class="px-4 py-4 w-[280px] bg-white shadow-md rounded-lg my-3 list-none group"
+      class="px-4 py-6 bg-white shadow-md rounded-lg my-3 list-none group"
       @click="handleOpenModal(filteredBoard?.board_name, board.col_name, task.title, task.id)"
       @contextmenu="showCtxMenu"
     >
-      <p class="text-slate-900 font-semibold group-hover:text-green-600 duration-200">
+      <p class="text-slate-900 font-semibold group-hover:text-green-600 duration-200 mb-2">
         {{ task.title }}
       </p>
       <p class="text-xs font-semibold text-gray-400">
