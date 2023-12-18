@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import type ContextMenu from 'primevue/contextmenu'
+import { useToast } from 'primevue/usetoast'
 import useBoardsStore from 'src/stores/boards'
 import type { BoardType } from 'src/types'
+import { customToast } from 'src/utils/toast'
+import { convertToPath } from 'src/utils/utils'
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
 const store = useBoardsStore()
 const { boards } = storeToRefs(store)
+const toast = useToast()
 const modalVisible = ref(false)
+const currentBoardIndex = ref(0)
 const newBoardData = ref<BoardType>({
   board_name: '',
   data: [
@@ -27,7 +33,38 @@ const newBoardData = ref<BoardType>({
   path: ''
 })
 
-const newBoardSubmit = () => {}
+const boardCtxMenuRef = ref<InstanceType<typeof ContextMenu>>()
+const showCtxMenu = (event: MouseEvent) => {
+  const currentIndex = Number(
+    ((event.target as HTMLElement).parentNode as any).attributes[2].nodeValue
+  )
+  currentBoardIndex.value = currentIndex
+  boardCtxMenuRef.value?.show(event)
+}
+
+const boardCtxMenuList = ref([
+  {
+    label: 'Delete'
+  }
+])
+
+const newBoardSubmit = () => {
+  if (!newBoardData.value.board_name) {
+    customToast.warning(toast, 'Board name cannot be empty')
+    return
+  }
+
+  if (newBoardData.value.data.some((col) => !col.col_name)) {
+    customToast.warning(toast, 'Column name cannot be empty')
+    return
+  }
+
+  newBoardData.value.path = convertToPath(newBoardData.value.board_name)
+
+  boards.value.push(newBoardData.value)
+  customToast.success(toast, 'Adding board successfully')
+  modalVisible.value = false
+}
 </script>
 
 <template>
@@ -36,15 +73,30 @@ const newBoardSubmit = () => {}
       all boards ({{ boards.length }})
     </h1>
     <div>
-      <RouterLink
-        v-for="(board, index) in boards"
-        :key="index"
-        :to="board.path"
-        active-class="bg-green-600 text-white hover:bg-green-100 hover:text-green-600"
-        class="block pl-6 py-4 my-2 list-none hover:bg-green-100 cursor-pointer duration-300 ease-in-out rounded-r-full text-gray-500 font-semibold"
-      >
-        {{ board.board_name }}
-      </RouterLink>
+      <div @contextmenu="showCtxMenu">
+        <RouterLink
+          v-for="(board, index) in boards"
+          :index="index"
+          :key="index"
+          :to="board.path"
+          active-class="bg-green-600 text-white hover:bg-green-100 hover:text-green-600"
+          class="block pl-6 py-4 my-2 list-none hover:bg-green-100 cursor-pointer duration-300 ease-in-out rounded-r-full text-gray-500 font-semibold"
+        >
+          <p>
+            {{ board.board_name }}
+          </p>
+        </RouterLink>
+        <ContextMenu ref="boardCtxMenuRef" :model="boardCtxMenuList">
+          <template #item="{ item }">
+            <button
+              class="px-3 py-2 w-full text-left hover:bg-green-50 duration-200 bg-white"
+              @click="boards.splice(currentBoardIndex, 1)"
+            >
+              {{ item.label }}
+            </button>
+          </template>
+        </ContextMenu>
+      </div>
       <button
         @click="modalVisible = true"
         class="w-full text-left block pl-6 py-4 my-2 list-none bg-green-50 hover:bg-green-100 cursor-pointer duration-300 ease-in-out rounded-r-full text-green-600/80 font-bold"

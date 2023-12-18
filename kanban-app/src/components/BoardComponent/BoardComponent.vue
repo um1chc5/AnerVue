@@ -121,6 +121,7 @@ const newColSubmit = () => {
     filteredBoard.value.data[col.col_index].col_name = col.col_name
   })
   editColVisible.value = false
+  customToast.success(toast, 'Editing columns successfully')
 }
 
 // --------------------------

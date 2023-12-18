@@ -33,4 +33,9 @@ const getDataFromLS = (key: string) => {
   }
 }
 
-export { getColNames, boardFiltering, getDataFromLS }
+function convertToPath(words: string) {
+  // Convert to lowercase and replace spaces with hyphens
+  return words.toLowerCase().replace(/\s+/g, '-')
+}
+
+export { getColNames, boardFiltering, getDataFromLS, convertToPath }

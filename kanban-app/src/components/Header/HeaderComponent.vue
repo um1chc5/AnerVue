@@ -1,10 +1,20 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
 import useBoardsStore from 'src/stores/boards'
-import type { TaskType } from 'src/types'
-import { boardFiltering, getColNames } from 'src/utils/utils'
+import type { BoardType, TaskType } from 'src/types'
+import { boardFiltering } from 'src/utils/utils'
 import { computed, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
+
+const getColNames = (board: BoardType) => {
+  const colNames: string[] = []
+  if (!board) return ['']
+  for (const column of board.data) {
+    colNames.push(column.col_name)
+  }
+
+  return colNames
+}
 
 type CustomTaskType = TaskType & {
   col_name: string
