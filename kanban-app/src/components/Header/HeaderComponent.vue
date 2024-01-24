@@ -1,97 +1,85 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { useToast } from 'primevue/usetoast'
 import useBoardsStore from 'src/stores/boards'
-import type { BoardType, TaskType } from 'src/types'
-import { boardFiltering } from 'src/utils/utils'
-import { computed, ref, watchEffect } from 'vue'
-import { useRoute } from 'vue-router'
+import type { CreateTaskBody } from 'src/types/api.type'
+import { computed, ref, watch } from 'vue'
+import { currentBoardQuery, useCreateTaskMutation } from 'src/utils/queries'
+import { customToast } from 'src/utils/toast'
+import { cloneDeep } from 'lodash'
 
-const getColNames = (board: BoardType) => {
-  const colNames: string[] = []
-  if (!board) return ['']
-  for (const column of board.data) {
-    colNames.push(column.col_name)
-  }
-
-  return colNames
-}
-
-type CustomTaskType = TaskType & {
-  col_name: string
-}
+// GET DATA FROM STORE
 const store = useBoardsStore()
-const { boards } = store
-const route = useRoute()
-const modalVisible = ref(false)
+const { current_board_id, colList } = storeToRefs(store)
 
-const currentBoard = computed(() => boardFiltering(boards, route))
-const initialColName = computed(() => getColNames(currentBoard.value)[0])
-// const subtaskLength = computed(() => newTaskData.value.subtasks?.length)
-const newTaskData = ref({
+// DECLARE REFS, VARIABLES, UTILITIES
+const modalVisible = ref(false)
+const toast = useToast()
+const initialNewTask = computed(() => ({
+  board_id: current_board_id.value,
+  sort_key: colList.value?.[0].col_id,
   title: '',
   description: '',
-  subtasks: [{}],
-  col_name: ''
-} as CustomTaskType)
+  subtasks: [
+    {
+      id: 1,
+      done: false,
+      title: ''
+    }
+  ]
+}))
+const newTaskData = ref<CreateTaskBody>(structuredClone(initialNewTask.value))
 
-const toast = useToast()
+// API, MUTATION
+const { data: currentBoardData, refetch } = currentBoardQuery(current_board_id)
+const createTaskMutation = useCreateTaskMutation()
 
-watchEffect(() => {
-  newTaskData.value.col_name = initialColName.value // Để gán lại value cho col_name
+// WATCH CÁC THỨ
+watch(
+  colList,
+  () => {
+    newTaskData.value.sort_key = colList.value?.[0].col_id
+    // console.log(newTaskData.value)
+  },
+  { deep: true }
+)
+
+watch(current_board_id, () => {
+  if (current_board_id.value) newTaskData.value.board_id = current_board_id.value
+})
+
+watch(currentBoardData, () => {
+  colList.value = currentBoardData.value?.data?.map((col) => ({
+    col_id: col.col_id,
+    col_name: col.col_name
+  }))
 })
 
 const taskEditSubmit = () => {
-  if (newTaskData.value.title === '') {
-    toast.add({
-      detail: 'Task name cannot be empty',
-      severity: 'warn',
-      life: 3000,
-      closable: true
-    })
+  const { subtasks, title } = newTaskData.value
+  if (title === '') {
+    customToast.warning(toast, 'Task name cannot be empty')
     return
   }
 
-  if (newTaskData.value.subtasks) {
-    const isSubtaskEmpty =
-      newTaskData.value.subtasks.some((subtask) => !subtask.title) &&
-      newTaskData.value.subtasks.length !== 0
+  if (subtasks) {
+    const isSubtaskEmpty = subtasks.some((subtask) => !subtask.title) && subtasks.length !== 0
     if (isSubtaskEmpty) {
-      toast.add({
-        detail: 'Subtask title cannot be empty',
-        severity: 'warn',
-        life: 3000,
-        closable: true
-      })
+      customToast.warning(toast, 'Subtask title cannot be empty')
       return
     }
   }
 
-  if (currentBoard.value) {
-    const targetColData = currentBoard.value.data.find(
-      (col) => col.col_name === newTaskData.value.col_name
-    )
-    if (!targetColData) return
-    targetColData.tasks.push({
-      id: targetColData.tasks.length + 1,
-      title: newTaskData.value.title,
-      description: newTaskData.value.description,
-      subtasks: (
-        newTaskData.value.subtasks as unknown as { id: number; title: string; done: boolean }[]
-      ).map((subtask: { id: number; title: string; done: boolean }) => ({ ...subtask }))
-    })
-    toast.add({
-      detail: 'Add task succesfully',
-      severity: 'success',
-      life: 3000,
-      closable: true
-    })
-
-    modalVisible.value = false
-    newTaskData.value.subtasks = [{ done: false, id: 1, title: '' }]
-  }
+  createTaskMutation.mutate(newTaskData.value, {
+    onSuccess: () => {
+      customToast.success(toast, ' Add task successfully')
+      refetch()
+      modalVisible.value = false
+      newTaskData.value = structuredClone(initialNewTask.value)
+      console.log(initialNewTask)
+    }
+  })
 }
-
-//
 </script>
 <template>
   <header class="flex py-4 shadow fixed w-full z-10 bg-white">
@@ -105,8 +93,9 @@ const taskEditSubmit = () => {
     v-model:visible="modalVisible"
     modal
     header="Adding task"
+    @after-hide="() => (newTaskData = cloneDeep(initialNewTask))"
     :style="{ width: '32rem' }"
-    :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
+    :breakpoints="{ '1199px': '75vw', '575px': '100vw' }"
     :close-on-escape="true"
     :draggable="false"
   >
@@ -128,7 +117,11 @@ const taskEditSubmit = () => {
       </div>
       <div class="mb-4">
         <p class="text-gray-500 font-semibold mb-1 text-sm">Subtasks</p>
-        <div class="flex gap-3 mb-2" v-for="(subtask, index) in newTaskData.subtasks" :key="index">
+        <div
+          class="flex gap-3 mb-2"
+          v-for="(subtask, index) in newTaskData.subtasks"
+          :key="subtask.id"
+        >
           <InputText
             v-model="subtask.title"
             type="text"
@@ -162,7 +155,7 @@ const taskEditSubmit = () => {
           size="small"
           @click.prevent="
             newTaskData.subtasks?.push({
-              id: newTaskData.subtasks?.length || 0 + 1,
+              id: newTaskData.subtasks?.length + 1 || 0 + 1,
               done: false,
               title: ''
             })
@@ -172,8 +165,10 @@ const taskEditSubmit = () => {
       <div class="mb-6">
         <p class="text-gray-500 font-semibold mb-1 text-sm">Current status</p>
         <Dropdown
-          v-model="newTaskData.col_name"
-          :options="getColNames(currentBoard)"
+          v-model="newTaskData.sort_key"
+          :options="colList"
+          option-label="col_name"
+          option-value="col_id"
           class="w-full"
         />
       </div>

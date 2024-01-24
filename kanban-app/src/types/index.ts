@@ -1,1 +1,1 @@
-export * from './BoardsType/board'
+export * from './board'

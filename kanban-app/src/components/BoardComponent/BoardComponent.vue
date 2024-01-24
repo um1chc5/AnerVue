@@ -1,175 +1,228 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
-import { computed, ref, watch, watchEffect } from 'vue'
+import { reactive, ref, watch, computed, type Ref } from 'vue'
 import useBoardsStore from 'src/stores/boards'
 import TaskModal from '../TaskModal'
-import type { BoardType, TaskType } from 'src/types'
 import TaskComponent from '../TaskComponent'
-import { boardFiltering } from 'src/utils/utils'
+import type { BoardType, TaskType } from 'src/types/board'
+import { storeToRefs } from 'pinia'
+import {
+  previewBoardsQuery,
+  currentBoardQuery,
+  useDeleteTaskMutation,
+  useCreateTaskMutation
+} from 'src/utils/queries'
+import type { UpdateBoardBody } from 'src/types/api.type'
 import { customToast } from 'src/utils/toast'
 import { useToast } from 'primevue/usetoast'
+import { useMutation } from '@tanstack/vue-query'
+import boardApis from 'src/apis/boards.api'
+import { cloneDeep } from 'lodash'
+import { filterTaskDataForUpdate } from 'src/utils/utils'
 
-// Khai báo ref
+// TYPE, INTERFACE
+type ColumnDataType = { col_id?: string; col_name: string }
+type editBoardDataType = { col_list: ColumnDataType[]; board_name: string }
+type dragChangeTypeProps = {
+  removed?: { element: TaskType }
+  added?: { element: TaskType }
+}
+
+// GET DATA FROM STORE
 const store = useBoardsStore()
+const { current_board_id, modalTaskData } = storeToRefs(store)
+
+// QUERY, MUTATION, API REQUEST
+const { data: previewAllBoards, refetch: refetchPreviewBoard } = previewBoardsQuery()
+const deleteTaskMutation = useDeleteTaskMutation()
+const createTaskMutation = useCreateTaskMutation()
+const {
+  data: currentBoardData,
+  isLoading,
+  refetch: refetchCurrentBoard
+} = currentBoardQuery(current_board_id)
+
+const updateBoardMutation = useMutation({
+  mutationFn: boardApis.updateBoard
+})
+
+// DECLARE REFS, VARIABLES, UTILITIES
+const router = useRouter()
 const route = useRoute()
-const { boards, modalDataMarker } = store
 const modalVisible = ref(false)
-const editColVisible = ref(false)
-const filteredBoard = computed(() => boardFiltering(boards, route))
-const columnsData = computed(
+const editBoardVisible = ref(false)
+const toast = useToast()
+const draggableBoardData = reactive<BoardType>({} as BoardType)
+const fetchedColData = computed(
   () =>
-    filteredBoard.value?.data.map((col, index) => ({
-      col_index: index,
+    currentBoardData.value?.data?.map((col) => ({
+      col_id: col.col_id,
       col_name: col.col_name
     }))
 )
+const editBoardData: editBoardDataType = reactive({
+  col_list: [],
+  board_name: ''
+})
 
-const initialNewCol = {
-  columns: columnsData.value,
-  board_name: filteredBoard.value?.board_name
+const initialUpdateBoardReqBody = {
+  board_name: '',
+  delete_records: [],
+  name_changing_records: [],
+  new_records: []
 }
 
-const newColData = ref(initialNewCol)
-const toast = useToast()
-// --------------------------
-// Watch các thứ
-watchEffect(() => {
-  // console.log(boards)
-  boards.forEach((board) => {
-    board.data.forEach((colData) =>
-      colData.tasks.forEach((task, index) => {
-        task.id = index + 1
-      })
-    )
-  })
-  // console.log(boards)
-})
+// This data includes changes in both columns and board (name, quantity)
+const updateBoardRequestBody = reactive<Omit<UpdateBoardBody, 'board_id'>>(
+  structuredClone(initialUpdateBoardReqBody)
+)
 
-watchEffect(() => {
-  newColData.value.columns = columnsData.value
-  newColData.value.board_name = filteredBoard.value?.board_name
-})
-
-watch(editColVisible, () => {
-  console.log('hehe', initialNewCol)
-  newColData.value = { ...initialNewCol }
-  // Ở chỗ này tại sao khi assign initialNewcol không dest thì giá trị vẫn sẽ k được reset?
-  // Phải chăng Vue Engine nghĩ mình vẫn đang trỏ vào vùng nhớ cũ của object initial nên nó sẽ không gán lại giá trị?
-})
-
-// --------------------------
-// HANDLE DATA CÁC THỨ
-const handleOpenModal = (board_name: string, col_name: string, title: string, id: number) => {
-  modalDataMarker.board_name = board_name
-  modalDataMarker.col_name = col_name
-  modalDataMarker.task_title = title
-  modalDataMarker.taskId = id
-  modalVisible.value = !modalVisible.value
-}
-
-const modalTaskData = computed(() => {
-  const data = boards
-    .find((board) => board.board_name === modalDataMarker.board_name)
-    ?.data.find((col) => col.col_name === modalDataMarker.col_name)
-    ?.tasks.find((task) => task.id === modalDataMarker.taskId)
-  return data as TaskType
-})
-
-const newColSubmit = () => {
-  if (
-    columnsData.value === newColData.value?.columns &&
-    filteredBoard.value?.board_name === newColData.value?.board_name
-  ) {
-    return
+// FUNCTION, METHODS
+const deleteCol = (col: ColumnDataType, index: number) => {
+  if (col.col_id) {
+    updateBoardRequestBody.delete_records?.push(col.col_id)
   }
+  editBoardData.col_list.splice(index, 1)
+}
 
-  if (newColData.value?.board_name === '') {
+const submitHandler = () => {
+  const { board_name, col_list } = editBoardData
+
+  if (board_name === '') {
     customToast.warning(toast, 'Board name cannot be empty')
     return
   }
 
-  const colNameEmpty =
-    newColData.value?.columns.some((col) => !col.col_name) && newColData.value.columns.length !== 0
+  const colNameEmpty = col_list.some((col) => !col.col_name) && col_list.length !== 0
   if (colNameEmpty) {
     customToast.warning(toast, 'Column name cannot be empty')
     return
   }
 
-  filteredBoard.value.board_name = newColData.value.board_name
-
-  const colsNumberCompare = newColData.value.columns.length - filteredBoard.value.data.length
-
-  if (colsNumberCompare !== 0) {
-    filteredBoard.value.data = filteredBoard.value.data.filter((_, index) =>
-      newColData.value.columns.some((col) => col.col_index === index)
-    )
+  if (board_name !== currentBoardData.value.board_name) {
+    updateBoardRequestBody.board_name = board_name
   }
 
-  if (colsNumberCompare > 0) {
-    newColData.value.columns.forEach((col) => {
-      if (col.col_index > columnsData.value.length - 1) {
-        filteredBoard.value.data.push({
+  col_list.forEach((col) => {
+    const matchedCol = fetchedColData.value.find((column) => column.col_id == col.col_id)
+    if (!col.col_id) {
+      updateBoardRequestBody.new_records?.push(col.col_name)
+    } else {
+      if (matchedCol && col.col_name !== matchedCol.col_name) {
+        updateBoardRequestBody.name_changing_records?.push({
           col_name: col.col_name,
-          tasks: []
+          sort_key: col.col_id
         })
       }
+    }
+  })
+
+  updateBoardMutation.mutate(
+    { ...updateBoardRequestBody, board_id: current_board_id.value },
+    {
+      onSuccess: () => {
+        customToast.success(toast, 'Update columns successfully')
+        refetchCurrentBoard()
+        refetchPreviewBoard()
+        editBoardVisible.value = false
+      }
+    }
+  )
+}
+
+const dragChangeHandler = (args: dragChangeTypeProps, col_id: string) => {
+  if ('removed' in args) {
+    console.log(args.removed.element.task_id)
+    deleteTaskMutation.mutate({
+      board_id: current_board_id.value,
+      task_id: args.removed.element.task_id
     })
   }
-
-  newColData.value.columns.forEach((col) => {
-    filteredBoard.value.data[col.col_index].col_name = col.col_name
-  })
-  editColVisible.value = false
-  customToast.success(toast, 'Editing columns successfully')
+  if ('added' in args) {
+    createTaskMutation.mutate({
+      ...filterTaskDataForUpdate(args.added.element, current_board_id.value),
+      title: args.added.element.title,
+      sort_key: col_id
+    })
+  }
 }
+
+// WATCHERS
+watch(route, () => {
+  current_board_id.value = route.params.board_id as string
+})
+
+watch(previewAllBoards, () => {
+  if (route.path == '/') {
+    current_board_id.value = previewAllBoards.value?.[0].board_id
+    router.push(current_board_id.value)
+    return
+  }
+  current_board_id.value = route.params.board_id as string
+})
+
+watch(currentBoardData, () => {
+  editBoardData.board_name = currentBoardData.value?.board_name
+  Object.assign(draggableBoardData, cloneDeep(currentBoardData.value))
+})
+
+watch(editBoardVisible, () => {
+  editBoardData.col_list = structuredClone(fetchedColData.value)
+  editBoardData.board_name = currentBoardData.value?.board_name
+  Object.assign(updateBoardRequestBody, structuredClone(initialUpdateBoardReqBody))
+})
 
 // --------------------------
 </script>
 
 <template>
+  <div class="min-h-screen pl-[300px] pt-[300px] bg-slate-100" v-if="isLoading">
+    <h2 class="font-bold text-2xl text-slate-800">Loading...</h2>
+  </div>
   <div
     id="board-component"
     class="bg-slate-100 min-h-screen z-0 pt-[108px] ml-[260px] px-6 pb-10 flex gap-6 overflow-x-scroll"
+    v-else-if="currentBoardData"
   >
     <div
-      v-for="(board, index) in filteredBoard?.data"
-      :key="index"
+      v-for="col in draggableBoardData.data"
+      :key="col.col_id"
       class="flex flex-col w-[280px] shrink-0"
     >
       <p class="text-sm text-gray-400 font-semibold tracking-widest">
-        {{ board.col_name }} ({{ board.tasks.length }})
+        {{ col.col_name }} ({{ col.tasks.length }})
       </p>
       <draggable
-        :list="board.tasks"
-        :item-key="board.col_name"
+        :list="col.tasks"
+        :item-key="col.col_name"
         group="tasks"
-        class="cursor-pointer grow"
+        class="grow"
+        @change="(args) => dragChangeHandler(args, col.col_id)"
       >
         <template #item="{ element: task }">
           <TaskComponent
             :task="task as TaskType"
-            :handle-open-modal="handleOpenModal"
-            :filtered-board="filteredBoard"
-            :board="board"
+            :modal-visible="modalVisible"
+            :board="col"
+            @update:modal-visible="(msg) => (modalVisible = msg)"
           />
         </template>
       </draggable>
     </div>
     <button
-      @click="editColVisible = true"
+      @click="editBoardVisible = true"
       class="bg-gradient-to-b from-slate-200 w-[280px] shrink-0 flex items-center justify-center rounded-xl duration-100 cursor-pointer text-slate-500 hover:text-green-600"
     >
-      <p class="font-bold text-2xl text-center">New Column <br />Edit Column</p>
+      <p class="font-bold text-2xl text-center">New Column <br />Edit Board</p>
     </button>
     <TaskModal
       :modal-visible="modalVisible"
       :modal-task-data="modalTaskData || ({} as TaskType)"
       @update:modal-visible="(msg) => (modalVisible = msg)"
-      :filtered-board="filteredBoard || ({} as BoardType)"
     />
     <Dialog
-      v-model:visible="editColVisible"
+      v-model:visible="editBoardVisible"
       modal
       header="Edit column"
       :style="{ width: '32rem' }"
@@ -177,11 +230,11 @@ const newColSubmit = () => {
       :close-on-escape="true"
       :draggable="false"
     >
-      <form class="px-3" @submit.prevent="newColSubmit">
+      <form class="px-3" @submit.prevent="submitHandler">
         <div class="mb-4">
           <h3 class="text-gray-500 font-semibold mb-2 text-sm">Board name</h3>
           <InputText
-            v-model="newColData.board_name"
+            v-model="editBoardData.board_name"
             type="text"
             size="small"
             placeholder="e.g: Vue Route"
@@ -191,7 +244,11 @@ const newColSubmit = () => {
         </div>
         <div class="mb-4">
           <p class="text-gray-500 font-semibold mb-1 text-sm">Columns</p>
-          <div class="flex gap-3 mb-2" v-for="(col, index) in newColData.columns" :key="index">
+          <div
+            class="flex gap-3 mb-2"
+            v-for="(col, index) in editBoardData.col_list"
+            :key="col.col_id"
+          >
             <InputText
               v-model="col.col_name"
               type="text"
@@ -202,7 +259,7 @@ const newColSubmit = () => {
             />
             <button
               class="text-gray-500 flex items-center cursor-pointer"
-              @click.prevent="newColData.columns.splice(index, 1)"
+              @click.prevent="deleteCol(col, index)"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -223,14 +280,18 @@ const newColSubmit = () => {
             outlined
             rounded
             size="small"
-            @click.prevent="
-              newColData.columns.push({ col_index: columnsData.length, col_name: '' })
-            "
+            @click.prevent="editBoardData.col_list.push({ col_name: '' })"
           />
         </div>
         <Button class="mt-2 w-full" type="submit" label="Save changes" rounded size="small" />
       </form>
     </Dialog>
+  </div>
+  <div
+    v-else
+    class="bg-slate-100 min-h-screen z-0 pt-[108px] ml-[260px] px-6 pb-10 flex justify-center items-center gap-6 overflow-x-scroll"
+  >
+    <h1 class="text-5xl text-gray-400 font-semibold">Choose a board</h1>
   </div>
 </template>
 
@@ -239,3 +300,4 @@ const newColSubmit = () => {
   display: none;
 }
 </style>
+src/types/board

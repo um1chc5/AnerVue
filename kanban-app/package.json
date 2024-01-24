@@ -15,7 +15,10 @@
     "prettier:fix": "prettier --write \"src/**/(*.tsx|*.ts|*.css|*.scss)\""
   },
   "dependencies": {
+    "@tanstack/vue-query": "^5.17.9",
+    "@tanstack/vue-query-devtools": "^5.17.18",
     "@vueuse/core": "^10.7.0",
+    "axios": "^1.6.5",
     "lodash": "^4.17.21",
     "pinia": "^2.1.7",
     "primevue": "^3.42.0",

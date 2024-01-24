@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     BoardComponentBoardComponent: typeof import('./src/components/BoardComponent/BoardComponent.vue')['default']
     Button: typeof import('primevue/button')['default']
+    ColumnModalColumnModal: typeof import('./src/components/ColumnModal/ColumnModal.vue')['default']
     ContextMenu: typeof import('primevue/contextmenu')['default']
     Dialog: typeof import('primevue/dialog')['default']
     Dropdown: typeof import('primevue/dropdown')['default']
@@ -19,6 +20,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     SideBarSideBar: typeof import('./src/components/SideBar/SideBar.vue')['default']
     TaskComponent: typeof import('./src/components/TaskComponent/index.ts')['default']
+    TaskComponentTask: typeof import('./src/components/TaskComponent/task.vue')['default']
     TaskComponentTaskComponent: typeof import('./src/components/TaskComponent/TaskComponent.vue')['default']
     TaskModal: typeof import('./src/components/TaskModal/index.ts')['default']
     TaskModalTaskModal: typeof import('./src/components/TaskModal/TaskModal.vue')['default']
