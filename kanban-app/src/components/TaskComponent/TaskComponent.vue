@@ -4,7 +4,7 @@ import type ContextMenu from 'primevue/contextmenu'
 import { useToast } from 'primevue/usetoast'
 import useBoardsStore from 'src/stores/boards'
 import type { TaskType } from 'src/types'
-import { currentBoardQuery, useDeleteTaskMutation } from 'src/utils/queries'
+import { useCurrentBoardQuery, useDeleteTaskMutation } from 'src/utils/queries'
 import { getColIdFromTaskId } from 'src/utils/skUtils'
 import { customToast } from 'src/utils/toast'
 import { ref } from 'vue'
@@ -17,7 +17,7 @@ interface Props {
 
 // GET DATA FROM STORE
 const { current_board_id, modalTaskData } = storeToRefs(useBoardsStore())
-const { data: currentBoardData, refetch } = currentBoardQuery(current_board_id)
+const { data: currentBoardData, refetch } = useCurrentBoardQuery(current_board_id)
 
 // QUERY, MUTATION, API REQUEST
 const deleteTaskMutation = useDeleteTaskMutation()

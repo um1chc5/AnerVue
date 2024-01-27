@@ -2,7 +2,7 @@ import { useQuery, useMutation } from '@tanstack/vue-query'
 import boardApis from 'src/apis/boards.api'
 import { computed, type Ref } from 'vue'
 
-export const previewBoardsQuery = () =>
+export const usePreviewBoardsQuery = () =>
   useQuery({
     queryKey: ['preview_boards'],
     queryFn: boardApis.getPreviewBoardsInfo,
@@ -10,7 +10,7 @@ export const previewBoardsQuery = () =>
     staleTime: 300000
   })
 
-export const currentBoardQuery = (current_board_id: Ref<string>) =>
+export const useCurrentBoardQuery = (current_board_id: Ref<string>) =>
   useQuery({
     queryKey: ['current_board', current_board_id],
     queryFn: () => boardApis.getBoardById(current_board_id.value),

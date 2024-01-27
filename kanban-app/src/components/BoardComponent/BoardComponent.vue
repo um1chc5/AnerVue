@@ -1,30 +1,30 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 import draggable from 'vuedraggable'
-import { reactive, ref, watch, computed, type Ref } from 'vue'
+import { reactive, ref, watch, computed } from 'vue'
 import useBoardsStore from 'src/stores/boards'
 import TaskModal from '../TaskModal'
 import TaskComponent from '../TaskComponent'
 import type { BoardType, TaskType } from 'src/types/board'
 import { storeToRefs } from 'pinia'
-import {
-  previewBoardsQuery,
-  currentBoardQuery,
-  useDeleteTaskMutation,
-  useCreateTaskMutation
-} from 'src/utils/queries'
 import type { UpdateBoardBody } from 'src/types/api.type'
 import { customToast } from 'src/utils/toast'
 import { useToast } from 'primevue/usetoast'
 import { useMutation } from '@tanstack/vue-query'
 import boardApis from 'src/apis/boards.api'
-import { cloneDeep } from 'lodash'
+import { cloneDeep, omit } from 'lodash'
 import { filterTaskDataForUpdate } from 'src/utils/utils'
+import {
+  usePreviewBoardsQuery,
+  useCurrentBoardQuery,
+  useDeleteTaskMutation,
+  useCreateTaskMutation
+} from 'src/utils/queries'
 
 // TYPE, INTERFACE
 type ColumnDataType = { col_id?: string; col_name: string }
 type editBoardDataType = { col_list: ColumnDataType[]; board_name: string }
-type dragChangeTypeProps = {
+type dragTaskTypeProps = {
   removed?: { element: TaskType }
   added?: { element: TaskType }
 }
@@ -34,14 +34,14 @@ const store = useBoardsStore()
 const { current_board_id, modalTaskData } = storeToRefs(store)
 
 // QUERY, MUTATION, API REQUEST
-const { data: previewAllBoards, refetch: refetchPreviewBoard } = previewBoardsQuery()
+const { data: previewAllBoards, refetch: refetchPreviewBoard } = usePreviewBoardsQuery()
 const deleteTaskMutation = useDeleteTaskMutation()
 const createTaskMutation = useCreateTaskMutation()
 const {
   data: currentBoardData,
   isLoading,
   refetch: refetchCurrentBoard
-} = currentBoardQuery(current_board_id)
+} = useCurrentBoardQuery(current_board_id)
 
 const updateBoardMutation = useMutation({
   mutationFn: boardApis.updateBoard
@@ -53,7 +53,7 @@ const route = useRoute()
 const modalVisible = ref(false)
 const editBoardVisible = ref(false)
 const toast = useToast()
-const draggableBoardData = reactive<BoardType>({} as BoardType)
+const draggableBoardData = ref<BoardType>({} as BoardType)
 const fetchedColData = computed(
   () =>
     currentBoardData.value?.data?.map((col) => ({
@@ -131,7 +131,7 @@ const submitHandler = () => {
   )
 }
 
-const dragChangeHandler = (args: dragChangeTypeProps, col_id: string) => {
+const dragTaskHandler = (args: dragTaskTypeProps, col_id: string) => {
   if ('removed' in args) {
     console.log(args.removed.element.task_id)
     deleteTaskMutation.mutate({
@@ -140,17 +140,28 @@ const dragChangeHandler = (args: dragChangeTypeProps, col_id: string) => {
     })
   }
   if ('added' in args) {
-    createTaskMutation.mutate({
-      ...filterTaskDataForUpdate(args.added.element, current_board_id.value),
-      title: args.added.element.title,
-      sort_key: col_id
-    })
+    createTaskMutation.mutate(
+      {
+        ...omit(filterTaskDataForUpdate(args.added.element, current_board_id.value), [
+          'sort_key',
+          'title'
+        ]),
+        title: args.added.element.title,
+        sort_key: col_id
+      },
+      {
+        onSuccess: () => {
+          refetchCurrentBoard()
+        }
+      }
+    )
   }
 }
 
 // WATCHERS
 watch(route, () => {
   current_board_id.value = route.params.board_id as string
+  console.log(route.params)
 })
 
 watch(previewAllBoards, () => {
@@ -164,7 +175,8 @@ watch(previewAllBoards, () => {
 
 watch(currentBoardData, () => {
   editBoardData.board_name = currentBoardData.value?.board_name
-  Object.assign(draggableBoardData, cloneDeep(currentBoardData.value))
+  draggableBoardData.value = cloneDeep(currentBoardData.value)
+  console.log(draggableBoardData)
 })
 
 watch(editBoardVisible, () => {
@@ -198,7 +210,7 @@ watch(editBoardVisible, () => {
         :item-key="col.col_name"
         group="tasks"
         class="grow"
-        @change="(args) => dragChangeHandler(args, col.col_id)"
+        @change="(args) => dragTaskHandler(args, col.col_id)"
       >
         <template #item="{ element: task }">
           <TaskComponent

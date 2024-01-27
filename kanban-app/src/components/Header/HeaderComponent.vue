@@ -4,7 +4,7 @@ import { useToast } from 'primevue/usetoast'
 import useBoardsStore from 'src/stores/boards'
 import type { CreateTaskBody } from 'src/types/api.type'
 import { computed, ref, watch } from 'vue'
-import { currentBoardQuery, useCreateTaskMutation } from 'src/utils/queries'
+import { useCurrentBoardQuery, useCreateTaskMutation } from 'src/utils/queries'
 import { customToast } from 'src/utils/toast'
 import { cloneDeep } from 'lodash'
 
@@ -31,7 +31,7 @@ const initialNewTask = computed(() => ({
 const newTaskData = ref<CreateTaskBody>(structuredClone(initialNewTask.value))
 
 // API, MUTATION
-const { data: currentBoardData, refetch } = currentBoardQuery(current_board_id)
+const { data: currentBoardData, refetch } = useCurrentBoardQuery(current_board_id)
 const createTaskMutation = useCreateTaskMutation()
 
 // WATCH CÁC THỨ

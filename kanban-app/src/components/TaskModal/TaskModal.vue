@@ -11,7 +11,7 @@ import { getColIdFromTaskId } from 'src/utils/skUtils'
 import { useMutation } from '@tanstack/vue-query'
 import boardApis from 'src/apis/boards.api'
 import { filterTaskDataForUpdate } from 'src/utils/utils'
-import { currentBoardQuery } from 'src/utils/queries'
+import { useCurrentBoardQuery } from 'src/utils/queries'
 
 interface Props {
   modalTaskData: TaskType
@@ -45,7 +45,7 @@ const updateTaskMutate = () =>
     }
   })
 
-const { refetch: currentBoardRefetch } = currentBoardQuery(current_board_id)
+const { refetch: currentBoardRefetch } = useCurrentBoardQuery(current_board_id)
 
 // WATCHERS
 watch(localVisible, () => {
