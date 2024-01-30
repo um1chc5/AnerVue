@@ -207,7 +207,9 @@ watch(editBoardVisible, () => {
       </p>
       <draggable
         :class="[
-          createTaskMutation.status.value === 'pending' || isFetching
+          createTaskMutation.status.value === 'pending' ||
+          isFetching ||
+          deleteTaskMutation.status.value === 'pending'
             ? 'pointer-events-none opacity-60'
             : ''
         ]"
