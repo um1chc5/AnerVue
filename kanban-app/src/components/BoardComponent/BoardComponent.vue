@@ -53,7 +53,7 @@ const route = useRoute()
 const modalVisible = ref(false)
 const editBoardVisible = ref(false)
 const toast = useToast()
-const draggableBoardData = ref<BoardType>({} as BoardType)
+const draggableBoardData = ref<BoardType>()
 const fetchedColData = computed(
   () =>
     currentBoardData.value?.data?.map((col) => ({
@@ -100,12 +100,12 @@ const submitHandler = () => {
     return
   }
 
-  if (board_name !== currentBoardData.value.board_name) {
+  if (board_name !== currentBoardData.value?.board_name) {
     updateBoardRequestBody.board_name = board_name
   }
 
   col_list.forEach((col) => {
-    const matchedCol = fetchedColData.value.find((column) => column.col_id == col.col_id)
+    const matchedCol = fetchedColData.value?.find((column) => column.col_id == col.col_id)
     if (!col.col_id) {
       updateBoardRequestBody.new_records?.push(col.col_name)
     } else {
@@ -133,20 +133,19 @@ const submitHandler = () => {
 
 const dragTaskHandler = (args: dragTaskTypeProps, col_id: string) => {
   if ('removed' in args) {
-    console.log(args.removed.element.task_id)
     deleteTaskMutation.mutate({
       board_id: current_board_id.value,
-      task_id: args.removed.element.task_id
+      task_id: args.removed?.element.task_id as string
     })
   }
   if ('added' in args) {
     createTaskMutation.mutate(
       {
-        ...omit(filterTaskDataForUpdate(args.added.element, current_board_id.value), [
+        ...omit(filterTaskDataForUpdate(args.added?.element as TaskType, current_board_id.value), [
           'sort_key',
           'title'
         ]),
-        title: args.added.element.title,
+        title: args.added?.element.title as string,
         sort_key: col_id
       },
       {
@@ -166,7 +165,7 @@ watch(route, () => {
 
 watch(previewAllBoards, () => {
   if (route.path == '/') {
-    current_board_id.value = previewAllBoards.value?.[0].board_id
+    current_board_id.value = previewAllBoards.value?.[0].board_id as string
     router.push(current_board_id.value)
     return
   }
@@ -174,14 +173,14 @@ watch(previewAllBoards, () => {
 })
 
 watch(currentBoardData, () => {
-  editBoardData.board_name = currentBoardData.value?.board_name
-  draggableBoardData.value = cloneDeep(currentBoardData.value)
-  console.log(draggableBoardData)
+  editBoardData.board_name = currentBoardData.value?.board_name as string
+  draggableBoardData.value = cloneDeep(currentBoardData.value) as BoardType
+  // console.log(draggableBoardData)
 })
 
 watch(editBoardVisible, () => {
-  editBoardData.col_list = structuredClone(fetchedColData.value)
-  editBoardData.board_name = currentBoardData.value?.board_name
+  editBoardData.col_list = structuredClone(fetchedColData.value) as ColumnDataType[]
+  editBoardData.board_name = currentBoardData.value?.board_name as string
   Object.assign(updateBoardRequestBody, structuredClone(initialUpdateBoardReqBody))
 })
 
@@ -198,7 +197,7 @@ watch(editBoardVisible, () => {
     v-else-if="currentBoardData"
   >
     <div
-      v-for="col in draggableBoardData.data"
+      v-for="col in (draggableBoardData as BoardType).data"
       :key="col.col_id"
       class="flex flex-col w-[280px] shrink-0"
     >
@@ -210,7 +209,7 @@ watch(editBoardVisible, () => {
         :item-key="col.col_name"
         group="tasks"
         class="grow"
-        @change="(args) => dragTaskHandler(args, col.col_id)"
+        @change="(args) => dragTaskHandler(args, col.col_id as string)"
       >
         <template #item="{ element: task }">
           <TaskComponent

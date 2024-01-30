@@ -20,7 +20,7 @@ export const useCurrentBoardQuery = (current_board_id: Ref<string>) =>
         ...col,
         tasks: col.tasks.map((task) => ({
           ...task,
-          subtasks: task.subtasks.map((subtask) => ({
+          subtasks: task.subtasks?.map((subtask) => ({
             ...subtask,
             done: subtask.done === 'True'
           }))

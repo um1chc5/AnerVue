@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useMutation, useQuery } from '@tanstack/vue-query'
+import { useMutation } from '@tanstack/vue-query'
 import type ContextMenu from 'primevue/contextmenu'
 import { useToast } from 'primevue/usetoast'
 import boardApis from 'src/apis/boards.api'
@@ -7,17 +7,13 @@ import { customToast } from 'src/utils/toast'
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import type { CreateBoardBody } from 'src/types/api.type'
+import { usePreviewBoardsQuery } from 'src/utils/queries'
 
 const toast = useToast()
 const modalVisible = ref(false)
 const currentBoardId = ref('')
 
-const { data: previewAllBoards, refetch } = useQuery({
-  queryKey: ['preview_boards'],
-  queryFn: boardApis.getPreviewBoardsInfo,
-  select: (res) => res.data.body,
-  staleTime: 300000
-})
+const { data: previewAllBoards, refetch } = usePreviewBoardsQuery()
 
 const initialNewBoard = {
   board_name: '',
@@ -55,7 +51,7 @@ const newBoardSubmit = () => {
     return
   }
 
-  if (newBoardData.value.columns_list.some((col) => !col)) {
+  if (newBoardData.value.columns_list?.some((col) => !col)) {
     customToast.warning(toast, 'Column name cannot be empty')
     return
   }
@@ -154,7 +150,7 @@ watch(modalVisible, (newValue, oldValue) => {
           <p class="text-gray-500 font-semibold mb-1 text-sm">Columns</p>
           <div class="flex gap-3 mb-2" v-for="(_, index) in newBoardData.columns_list" :key="index">
             <InputText
-              v-model="newBoardData.columns_list[index]"
+              v-model="(newBoardData.columns_list as string[])[index]"
               type="text"
               size="small"
               placeholder="Column name"
@@ -163,7 +159,7 @@ watch(modalVisible, (newValue, oldValue) => {
             />
             <button
               class="text-gray-500 flex items-center cursor-pointer"
-              @click.prevent="newBoardData.columns_list.splice(index, 1)"
+              @click.prevent="(newBoardData.columns_list as string[])?.splice(index, 1)"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -184,7 +180,7 @@ watch(modalVisible, (newValue, oldValue) => {
             outlined
             rounded
             size="small"
-            @click.prevent="newBoardData.columns_list.push('')"
+            @click.prevent="(newBoardData.columns_list as string[]).push('')"
           />
         </div>
         <Button class="mt-2 w-full" type="submit" label="Save changes" rounded size="small" />

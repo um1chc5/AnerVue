@@ -7,6 +7,7 @@ import { computed, ref, watch } from 'vue'
 import { useCurrentBoardQuery, useCreateTaskMutation } from 'src/utils/queries'
 import { customToast } from 'src/utils/toast'
 import { cloneDeep } from 'lodash'
+import type { Subtask } from 'src/types'
 
 // GET DATA FROM STORE
 const store = useBoardsStore()
@@ -17,7 +18,7 @@ const modalVisible = ref(false)
 const toast = useToast()
 const initialNewTask = computed(() => ({
   board_id: current_board_id.value,
-  sort_key: colList.value?.[0].col_id,
+  sort_key: colList.value?.[0].col_id as string,
   title: '',
   description: '',
   subtasks: [
@@ -34,11 +35,11 @@ const newTaskData = ref<CreateTaskBody>(structuredClone(initialNewTask.value))
 const { data: currentBoardData, refetch } = useCurrentBoardQuery(current_board_id)
 const createTaskMutation = useCreateTaskMutation()
 
-// WATCH CÁC THỨ
+// WATCHERS
 watch(
   colList,
   () => {
-    newTaskData.value.sort_key = colList.value?.[0].col_id
+    newTaskData.value.sort_key = colList.value?.[0].col_id as string
     // console.log(newTaskData.value)
   },
   { deep: true }
@@ -49,10 +50,12 @@ watch(current_board_id, () => {
 })
 
 watch(currentBoardData, () => {
-  colList.value = currentBoardData.value?.data?.map((col) => ({
-    col_id: col.col_id,
-    col_name: col.col_name
-  }))
+  colList.value = currentBoardData.value?.data?.map<{ col_id: string; col_name: string }>(
+    (col) => ({
+      col_id: col.col_id as string,
+      col_name: col.col_name
+    })
+  )
 })
 
 const taskEditSubmit = () => {
@@ -63,7 +66,8 @@ const taskEditSubmit = () => {
   }
 
   if (subtasks) {
-    const isSubtaskEmpty = subtasks.some((subtask) => !subtask.title) && subtasks.length !== 0
+    const isSubtaskEmpty =
+      subtasks.some((subtask: Subtask) => !subtask.title) && subtasks.length !== 0
     if (isSubtaskEmpty) {
       customToast.warning(toast, 'Subtask title cannot be empty')
       return
@@ -93,7 +97,7 @@ const taskEditSubmit = () => {
     v-model:visible="modalVisible"
     modal
     header="Adding task"
-    @after-hide="() => (newTaskData = cloneDeep(initialNewTask))"
+    @after-hide="() => (newTaskData = cloneDeep(initialNewTask) as CreateTaskBody)"
     :style="{ width: '32rem' }"
     :breakpoints="{ '1199px': '75vw', '575px': '100vw' }"
     :close-on-escape="true"

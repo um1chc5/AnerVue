@@ -34,7 +34,7 @@ function filterTaskDataForUpdate(task: TaskType, board_id: string): UpdateTaskBo
     ...task,
     board_id: board_id,
     sort_key: task.task_id,
-    subtasks: task.subtasks.map((subtask) => ({
+    subtasks: task.subtasks?.map((subtask) => ({
       ...subtask,
       done: subtask.done ? 'True' : 'False'
     }))

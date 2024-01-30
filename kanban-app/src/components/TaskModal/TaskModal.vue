@@ -23,12 +23,12 @@ const { colList, current_board_id } = storeToRefs(useBoardsStore())
 
 // DECLARE REFS, VARIABLES, UTILITIES
 const props = defineProps<Props>()
-const editableTaskData = ref<TaskType>()
+const editableTaskData = ref<TaskType>({} as TaskType)
 const currentColumnId = ref()
 const localVisible = ref(props.modalVisible)
 const isEditable = ref(false)
 const isTaskChange = ref(false)
-const subtaskLength = computed(() => editableTaskData.value.subtasks?.length)
+const subtaskLength = computed(() => editableTaskData.value?.subtasks?.length)
 const emit = defineEmits(['update:modalVisible'])
 const toast = useToast()
 
@@ -38,7 +38,7 @@ const { mutate } = useMutation({
 })
 
 const updateTaskMutate = () =>
-  mutate(filterTaskDataForUpdate(editableTaskData.value, current_board_id.value), {
+  mutate(filterTaskDataForUpdate(editableTaskData.value as TaskType, current_board_id.value), {
     onSuccess: () => {
       customToast.success(toast, 'Update task thành công!')
       currentBoardRefetch()
@@ -77,7 +77,7 @@ watch(
 
 // HANDLE EVENT
 const subtaskFilledCheck = () => {
-  return !editableTaskData.value.subtasks?.some((subtask) => subtask.title == '')
+  return !editableTaskData.value?.subtasks?.some((subtask) => subtask.title == '')
 }
 
 const taskEditSubmit = () => {
@@ -99,6 +99,7 @@ const taskEditSubmit = () => {
 <template>
   <Dialog
     v-model:visible="localVisible"
+    v-if="editableTaskData"
     modal
     :header="modalTaskData.title"
     :style="{ width: '32rem' }"
