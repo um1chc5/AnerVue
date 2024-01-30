@@ -40,6 +40,7 @@ const createTaskMutation = useCreateTaskMutation()
 const {
   data: currentBoardData,
   isLoading,
+  isFetching,
   refetch: refetchCurrentBoard
 } = useCurrentBoardQuery(current_board_id)
 
@@ -133,20 +134,10 @@ const submitHandler = () => {
 
 const dragTaskHandler = (args: dragTaskTypeProps, col_id: string) => {
   if ('removed' in args) {
-    deleteTaskMutation.mutate({
-      board_id: current_board_id.value,
-      task_id: args.removed?.element.task_id as string
-    })
-  }
-  if ('added' in args) {
-    createTaskMutation.mutate(
+    deleteTaskMutation.mutate(
       {
-        ...omit(filterTaskDataForUpdate(args.added?.element as TaskType, current_board_id.value), [
-          'sort_key',
-          'title'
-        ]),
-        title: args.added?.element.title as string,
-        sort_key: col_id
+        board_id: current_board_id.value,
+        task_id: args.removed?.element.task_id as string
       },
       {
         onSuccess: () => {
@@ -154,6 +145,16 @@ const dragTaskHandler = (args: dragTaskTypeProps, col_id: string) => {
         }
       }
     )
+  }
+  if ('added' in args) {
+    createTaskMutation.mutate({
+      ...omit(filterTaskDataForUpdate(args.added?.element as TaskType, current_board_id.value), [
+        'sort_key',
+        'title'
+      ]),
+      title: args.added?.element.title as string,
+      sort_key: col_id
+    })
   }
 }
 
@@ -205,6 +206,11 @@ watch(editBoardVisible, () => {
         {{ col.col_name }} ({{ col.tasks.length }})
       </p>
       <draggable
+        :class="[
+          createTaskMutation.status.value === 'pending' || isFetching
+            ? 'pointer-events-none opacity-60'
+            : ''
+        ]"
         :list="col.tasks"
         :item-key="col.col_name"
         group="tasks"
