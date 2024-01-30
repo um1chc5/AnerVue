@@ -1,26 +1,28 @@
 export interface BoardType {
+  board_id?: string
   board_name: string
-  path: string
   data: {
+    col_id?: string
     col_name: string
     tasks: TaskType[]
   }[]
 }
 
 export interface TaskType {
-  id: number
+  task_id: string
   title: string
   description?: string
-  subtasks?: {
-    id: number
-    title: string
-    done: boolean
-  }[]
+  subtasks?: Subtask[]
+}
+
+export interface Subtask {
+  id: number
+  title: string
+  done: boolean | string
 }
 
 export type TaskModalMarkerType = {
-  board_name: string
-  task_title: string
+  col_id: string
+  task_id: string
   col_name: string
-  taskId: number
 }

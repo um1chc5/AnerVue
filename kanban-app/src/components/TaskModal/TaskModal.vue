@@ -1,98 +1,107 @@
 <script setup lang="ts">
-import { computed, ref, watch, watchEffect } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Checkbox from 'primevue/checkbox'
 import { useToast } from 'primevue/usetoast'
-import _ from 'lodash'
+import { cloneDeep } from 'lodash'
 import useBoardsStore from 'src/stores/boards'
-import { getColNames } from 'src/utils/utils'
-import type { TaskType, BoardType } from 'src/types'
+import type { TaskType } from 'src/types'
+import { customToast } from 'src/utils/toast'
+import { storeToRefs } from 'pinia'
+import { getColIdFromTaskId } from 'src/utils/skUtils'
+import { useMutation } from '@tanstack/vue-query'
+import boardApis from 'src/apis/boards.api'
+import { filterTaskDataForUpdate } from 'src/utils/utils'
+import { useCurrentBoardQuery } from 'src/utils/queries'
 
 interface Props {
   modalTaskData: TaskType
   modalVisible?: boolean
-  filteredBoard: BoardType
 }
 
-const store = useBoardsStore()
-const { handleColChange, modalDataMarker } = store
+// GET DATA FROM STORE
+const { colList, current_board_id } = storeToRefs(useBoardsStore())
 
-const emit = defineEmits(['update:modalVisible'])
-
-// Ref các thứ
+// DECLARE REFS, VARIABLES, UTILITIES
 const props = defineProps<Props>()
-
-const modalTaskData = computed(() => props.modalTaskData)
-const editableTaskData = ref(JSON.parse(JSON.stringify(modalTaskData.value)) as TaskType)
+const editableTaskData = ref<TaskType>({} as TaskType)
+const currentColumnId = ref()
 const localVisible = ref(props.modalVisible)
-const localColName = ref(modalDataMarker.col_name)
 const isEditable = ref(false)
-const subtaskLength = computed(() => editableTaskData.value.subtasks?.length)
-
-// Watcher các thứ
-watch(modalTaskData, () => {
-  editableTaskData.value = JSON.parse(JSON.stringify(modalTaskData.value))
-})
-
-watchEffect(() => {
-  localVisible.value = props.modalVisible
-  localColName.value = modalDataMarker.col_name
-})
-
-watch(localVisible, () => {
-  emit('update:modalVisible', localVisible.value)
-  console.log(localVisible.value)
-  isEditable.value = false
-  if (localColName.value !== modalDataMarker.col_name) {
-    // console.log('localVisible change')
-    handleColChange(
-      props.filteredBoard.board_name,
-      modalDataMarker.taskId,
-      modalDataMarker.col_name,
-      localColName.value
-    )
-  }
-})
-
-// Handle sự kiện
-const subtaskFilledCheck = () => {
-  return !editableTaskData.value.subtasks?.some((subtask) => subtask.title == '')
-}
-
+const isTaskChange = ref(false)
+const subtaskLength = computed(() => editableTaskData.value?.subtasks?.length)
+const emit = defineEmits(['update:modalVisible'])
 const toast = useToast()
 
-const taskEditSubmit = () => {
-  // console.log(editableTaskData.value.subtasks, modalTaskData.value.subtasks)
+// MUTATION, QUERY
+const { mutate } = useMutation({
+  mutationFn: boardApis.updateTask
+})
 
+const updateTaskMutate = () =>
+  mutate(filterTaskDataForUpdate(editableTaskData.value as TaskType, current_board_id.value), {
+    onSuccess: () => {
+      customToast.success(toast, 'Update task thành công!')
+      currentBoardRefetch()
+    }
+  })
+
+const { refetch: currentBoardRefetch } = useCurrentBoardQuery(current_board_id)
+
+// WATCHERS
+watch(localVisible, () => {
+  if (!localVisible.value) {
+    emit('update:modalVisible', localVisible.value)
+    if (isTaskChange.value && !isEditable.value) {
+      console.log(isEditable.value)
+      updateTaskMutate()
+    }
+  }
+  isEditable.value = false
+})
+
+watch(props, () => {
+  if (props.modalVisible) {
+    currentColumnId.value = getColIdFromTaskId(props.modalTaskData.task_id)
+    editableTaskData.value = cloneDeep(props.modalTaskData)
+  }
+  localVisible.value = props.modalVisible
+})
+
+watch(
+  editableTaskData,
+  (value) => {
+    isTaskChange.value = JSON.stringify(value) !== JSON.stringify(props.modalTaskData)
+  },
+  { deep: true }
+)
+
+// HANDLE EVENT
+const subtaskFilledCheck = () => {
+  return !editableTaskData.value?.subtasks?.some((subtask) => subtask.title == '')
+}
+
+const taskEditSubmit = () => {
   const isFullFilled = subtaskFilledCheck()
   if (!isFullFilled) {
-    console.log('hehe')
-    toast.add({
-      severity: 'warn',
-      summary: 'Warn Message',
-      detail: 'Subtask title cannot be empty',
-      life: 3000
-    })
-  } else if (JSON.stringify(editableTaskData.value) !== JSON.stringify(modalTaskData.value)) {
-    console.log('hehe')
-    editableTaskData.value.subtasks?.forEach((subtask, index) => (subtask.id = index + 1))
-    _.assign(modalTaskData.value, { ...JSON.parse(JSON.stringify(editableTaskData.value)) })
+    customToast.warning(toast, 'Subtask title cannot be empty')
+  } else if (isTaskChange.value) {
+    updateTaskMutate()
     localVisible.value = false
-    toast.add({
-      severity: 'success',
-      summary: 'Success Message',
-      detail: 'Edit task successfully',
-      life: 3000
-    })
+  } else {
+    customToast.warning(
+      toast,
+      'Task content is not changing, press esc or close button to cancel popup'
+    )
   }
 }
 </script>
 
 <template>
-  <Toast position="bottom-right" />
   <Dialog
     v-model:visible="localVisible"
+    v-if="editableTaskData"
     modal
-    :header="modalDataMarker.task_title"
+    :header="modalTaskData.title"
     :style="{ width: '32rem' }"
     :breakpoints="{ '1199px': '75vw', '575px': '90vw' }"
     :close-on-escape="true"
@@ -108,16 +117,17 @@ const taskEditSubmit = () => {
       </p>
       <div class="py-3 px-3">
         <li
-          v-for="(subtask, index) in modalTaskData.subtasks"
+          v-for="(subtask, index) in editableTaskData.subtasks"
           :key="index"
           class="cursor-pointer list-none flex items-center px-4 my-2 rounded bg-slate-50 hover:bg-green-100 duration-100"
         >
           <Checkbox v-model="subtask.done" :binary="true" :input-id="String(subtask.id)" />
           <label
             :class="[
+              'text-sm cursor-pointer grow pl-3 py-4',
               subtask.done
-                ? 'text-gray-400 line-through font-semibold text-sm cursor-pointer grow pl-3 py-4'
-                : 'text-slate-900 font-semibold text-sm cursor-pointer grow pl-3 py-4'
+                ? 'text-gray-400 line-through font-semibold '
+                : 'text-slate-900 font-semibold '
             ]"
             :for="String(subtask.id)"
             >{{ subtask.title }}</label
@@ -126,7 +136,13 @@ const taskEditSubmit = () => {
       </div>
       <div class="px-3">
         <p class="text-gray-500 font-semibold mb-1 text-sm">Current status</p>
-        <Dropdown v-model="localColName" :options="getColNames(filteredBoard)" class="w-full" />
+        <Dropdown
+          v-model="currentColumnId"
+          :options="colList"
+          option-label="col_name"
+          option-value="col_id"
+          class="w-full"
+        />
       </div>
       <div class="w-full pt-4 px-3">
         <Button
@@ -209,7 +225,13 @@ const taskEditSubmit = () => {
         </div>
         <div class="mb-6">
           <p class="text-gray-500 font-semibold mb-1 text-sm">Current status</p>
-          <Dropdown v-model="localColName" :options="getColNames(filteredBoard)" class="w-full" />
+          <Dropdown
+            v-model="currentColumnId"
+            :options="colList"
+            option-label="col_name"
+            option-value="col_id"
+            class="w-full"
+          />
         </div>
         <div class="flex gap-3">
           <Button type="submit" class="w-full" label="Submit" rounded size="small" />

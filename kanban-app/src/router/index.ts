@@ -16,10 +16,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: userStore.boards[0].path
+      component: () => import('../components/BoardComponent/BoardComponent.vue')
     },
     {
-      path: '/:plan',
+      path: '/:board_id',
       name: 'board',
       // route level code-splitting
       // this generates a separate chunk (About.[hash].js) for this route

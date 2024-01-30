@@ -1,5 +1,6 @@
-import type { RouteLocationNormalizedLoaded } from 'vue-router'
 import type { BoardType } from '../types'
+import type { TaskType } from 'src/types/board'
+import type { UpdateTaskBody } from './../types/api.type'
 
 const getColNames = (board: BoardType) => {
   const colNames: string[] = []
@@ -9,11 +10,6 @@ const getColNames = (board: BoardType) => {
   }
 
   return colNames
-}
-
-const boardFiltering = (boardsInput: BoardType[], route: RouteLocationNormalizedLoaded) => {
-  const result = boardsInput.filter((board) => board.path === route.params.plan)[0]
-  return result
 }
 
 const getDataFromLS = (key: string) => {
@@ -33,9 +29,16 @@ const getDataFromLS = (key: string) => {
   }
 }
 
-function convertToPath(words: string) {
-  // Convert to lowercase and replace spaces with hyphens
-  return words.toLowerCase().replace(/\s+/g, '-')
+function filterTaskDataForUpdate(task: TaskType, board_id: string): UpdateTaskBody {
+  return {
+    ...task,
+    board_id: board_id,
+    sort_key: task.task_id,
+    subtasks: task.subtasks?.map((subtask) => ({
+      ...subtask,
+      done: subtask.done ? 'True' : 'False'
+    }))
+  }
 }
 
-export { getColNames, boardFiltering, getDataFromLS, convertToPath }
+export { getColNames, getDataFromLS, filterTaskDataForUpdate }

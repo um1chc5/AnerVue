@@ -1,21 +1,47 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import type ContextMenu from 'primevue/contextmenu'
+import { useToast } from 'primevue/usetoast'
 import useBoardsStore from 'src/stores/boards'
-import type { BoardType, TaskType } from 'src/types'
+import type { TaskType } from 'src/types'
+import { useCurrentBoardQuery, useDeleteTaskMutation } from 'src/utils/queries'
+import { getColIdFromTaskId } from 'src/utils/skUtils'
+import { customToast } from 'src/utils/toast'
 import { ref } from 'vue'
 
+// TYPE, INTERFACE
 interface Props {
-  handleOpenModal: (board_name: string, col_name: string, title: string, id: number) => void
   task: TaskType
-  filteredBoard: BoardType
-  board: {
-    col_name: string
-    tasks: TaskType[]
+  modalVisible: boolean
+}
+
+// GET DATA FROM STORE
+const { current_board_id, modalTaskData } = storeToRefs(useBoardsStore())
+const { data: currentBoardData, refetch } = useCurrentBoardQuery(current_board_id)
+
+// QUERY, MUTATION, API REQUEST
+const deleteTaskMutation = useDeleteTaskMutation()
+
+// DECLARE REFS, VARIABLES, UTILITIES
+const props = defineProps<Props>()
+const toast = useToast()
+const emit = defineEmits(['update:modalVisible'])
+
+// Mutation các thứ
+const handleDeleteTask = (task_id: string) => {
+  if (confirm('You want delete this task')) {
+    deleteTaskMutation.mutate(
+      { board_id: current_board_id.value, task_id: task_id },
+      {
+        onSuccess: () => {
+          refetch()
+          customToast.success(toast, 'Delete task successfully')
+        }
+      }
+    )
   }
 }
-defineProps<Props>()
 
-const { handleDeleteTask } = useBoardsStore()
 const ctxMenuRef = ref<InstanceType<typeof ContextMenu>>()
 const showCtxMenu = (event: MouseEvent) => {
   ctxMenuRef.value?.show(event)
@@ -27,28 +53,36 @@ const ctxMenuList = ref([
   }
 ])
 
+// FUNCTION, METHODS
+const handleOpenModal = (task_id: string) => {
+  modalTaskData.value = currentBoardData.value?.data
+    ?.find((col) => col.col_id === getColIdFromTaskId(task_id))
+    ?.tasks.find((task) => task.task_id === task_id)
+  emit('update:modalVisible', !props.modalVisible)
+}
+
 //
 </script>
 <template>
-  <div>
+  <div class="cursor-pointer">
     <li
       class="px-4 py-6 bg-white shadow-md rounded-lg my-3 list-none group"
-      @click="handleOpenModal(filteredBoard?.board_name, board.col_name, task.title, task.id)"
+      @click="handleOpenModal(props.task.task_id)"
       @contextmenu="showCtxMenu"
     >
       <p class="text-slate-900 font-semibold group-hover:text-green-600 duration-200 mb-2">
-        {{ task.title }}
+        {{ props.task.title }}
       </p>
       <p class="text-xs font-semibold text-gray-400">
-        {{ (task as TaskType).subtasks?.filter((subtask) => subtask.done).length }} of
-        {{ (task as TaskType).subtasks?.length }} subtasks
+        {{ props.task.subtasks?.filter((subtask) => subtask.done).length }} of
+        {{ props.task.subtasks?.length }} subtasks
       </p>
     </li>
     <ContextMenu ref="ctxMenuRef" :model="ctxMenuList">
       <template #item="{ item }">
         <button
           class="px-3 py-2 w-full text-left hover:bg-green-50 duration-200 bg-white"
-          @click="handleDeleteTask(filteredBoard.board_name, board.col_name, task.id - 1)"
+          @click="handleDeleteTask(task.task_id)"
         >
           {{ item.label }}
         </button>

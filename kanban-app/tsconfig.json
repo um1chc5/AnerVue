@@ -5,17 +5,18 @@
     "module": "ESNext",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "sourceMap": true,
+    "allowJs": true,
 
     /* Bundler mode */
     "moduleResolution": "Bundler",
-    "allowImportingTsExtensions": true,
+    // "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
 
     /* Linting */
     //Sửa bug env trong index.ts
-    "types": ["unplugin-icons/types/vue", "node", "vite/client"],
+    "types": ["node", "vite/client"],
     "importHelpers": true,
     "baseUrl": "."
   },
@@ -25,3 +26,4 @@
     "src/*": ["./src/*"],
   }
 }
+// "unplugin-icons/types/vue",
